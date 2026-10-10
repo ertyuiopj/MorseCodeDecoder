@@ -11,7 +11,12 @@
 #define SDA_PIN 5
 #define SCL_PIN 4
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+Adafruit_SSD1306 display(
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
+  &Wire,
+  OLED_RESET
+);
 
 const int buttonPin = 10;
 
@@ -43,33 +48,42 @@ MorseMap morseTable[] = {
   {".--.", 'P'}, {"--.-", 'Q'}, {".-.", 'R'}, {"...", 'S'}, {"-", 'T'},
   {"..-", 'U'}, {"...-", 'V'}, {".--", 'W'}, {"-..-", 'X'}, {"-.--", 'Y'},
   {"--..", 'Z'},
+
   {"-----", '0'}, {".----", '1'}, {"..---", '2'}, {"...--", '3'},
   {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'},
   {"---..", '8'}, {"----.", '9'}
 };
 
-const int morseTableSize = sizeof(morseTable) / sizeof(MorseMap);
+const int morseTableSize =
+  sizeof(morseTable) / sizeof(MorseMap);
 
-const char* ssid1 = "YOUR_FIRST_WIFI";
-const char* password1 = "YOUR_FIRST_WIFI_PASSWORD";
+const char* ssid1 = "FIRSTWIFI";
+const char* password1 = "FIRSTWIFIPASSWORD";
 
-const char* ssid2 = "YOUR_SECOND_WIFI";
-const char* password2 = "YOUR_SECOND_WIFI_PASSWORD";
+const char* ssid2 = "SECONDWIFI";
+const char* password2 = "SECONDWIFIPASSWORD";
 
 WiFiServer server(80);
 
-int currentWiFi = 1;
+int currentWiFi = 0;
+
 unsigned long lastWiFiAttempt = 0;
+
 const unsigned long WIFI_RETRY_INTERVAL = 15000;
 
 void setup() {
+
   Serial.begin(115200);
 
   pinMode(buttonPin, INPUT_PULLUP);
 
   Wire.begin(SDA_PIN, SCL_PIN);
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+  if (!display.begin(
+        SSD1306_SWITCHCAPVCC,
+        OLED_ADDRESS
+      )) {
+
     Serial.println("OLED not found!");
 
     while (true) {
@@ -87,11 +101,13 @@ void setup() {
   display.setTextSize(1);
   display.setCursor(0, 25);
   display.println("Starting...");
+
   display.display();
 
   delay(1000);
 
   WiFi.mode(WIFI_STA);
+
   startWiFi();
 
   server.begin();
@@ -100,15 +116,23 @@ void setup() {
 }
 
 void loop() {
+
   unsigned long currentTime = millis();
 
   handleWiFi();
+
   handleWiFiClients();
 
   int buttonState = digitalRead(buttonPin);
 
-  if (buttonState == LOW && pressStart == 0) {
+  // Button pressed
+  if (
+    buttonState == LOW &&
+    pressStart == 0
+  ) {
+
     pressStart = currentTime;
+
     Serial.println("Button pressed");
   }
 
@@ -117,15 +141,19 @@ void loop() {
     pressStart != 0 &&
     (currentTime - pressStart >= MODE_HOLD_TIME)
   ) {
+
     if (mode == TEXT_MODE) {
       mode = LETTER_MODE;
       Serial.println("MODE: LETTER");
-    } else {
+    }
+
+    else {
       mode = TEXT_MODE;
       Serial.println("MODE: TEXT");
     }
 
     pressStart = 0;
+
     morseSymbol = "";
 
     displayModeChanged();
@@ -139,15 +167,26 @@ void loop() {
     return;
   }
 
-  if (buttonState == HIGH && pressStart != 0) {
+  if (
+    buttonState == HIGH &&
+    pressStart != 0
+  ) {
+
     pressDuration = currentTime - pressStart;
+
     pressStart = 0;
 
     if (pressDuration < 300) {
+
       morseSymbol += ".";
+
       Serial.println("DOT");
-    } else {
+    }
+
+    else {
+
       morseSymbol += "-";
+
       Serial.println("DASH");
     }
 
@@ -161,9 +200,12 @@ void loop() {
     pressStart == 0 &&
     (currentTime - lastSignalTime) > 1000
   ) {
-    char decodedChar = decodeMorse(morseSymbol);
+
+    char decodedChar =
+      decodeMorse(morseSymbol);
 
     if (mode == LETTER_MODE) {
+
       decodedText += decodedChar;
 
       Serial.print("Letter: ");
@@ -172,7 +214,10 @@ void loop() {
       morseSymbol = "";
 
       displayLetter(decodedChar);
-    } else {
+    }
+
+    else {
+
       decodedText += decodedChar;
 
       Serial.print("Decoded: ");
@@ -185,7 +230,9 @@ void loop() {
   }
 }
 
+
 void startWiFi() {
+
   Serial.println();
   Serial.println("Starting Wi-Fi...");
 
@@ -197,25 +244,43 @@ void startWiFi() {
   Serial.println(ssid1);
 
   lastWiFiAttempt = millis();
+
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Morse Decoder");
+  display.println();
+  display.println("WiFi starting...");
+  display.display();
 }
 
 void handleWiFi() {
+
   if (WiFi.status() == WL_CONNECTED) {
     return;
   }
 
   unsigned long currentTime = millis();
 
-  if (currentTime - lastWiFiAttempt < WIFI_RETRY_INTERVAL) {
+  // Don't retry constantly
+  if (
+    currentTime - lastWiFiAttempt <
+    WIFI_RETRY_INTERVAL
+  ) {
     return;
   }
 
   lastWiFiAttempt = currentTime;
 
   if (currentWiFi == 1) {
-    Serial.println("First Wi-Fi failed. Trying second Wi-Fi...");
+
+    Serial.println();
+    Serial.println("First Wi-Fi failed.");
+    Serial.println("Trying second Wi-Fi...");
 
     WiFi.disconnect();
+
     delay(100);
 
     currentWiFi = 2;
@@ -224,10 +289,16 @@ void handleWiFi() {
 
     Serial.print("Trying: ");
     Serial.println(ssid2);
-  } else {
-    Serial.println("Second Wi-Fi failed. Trying first Wi-Fi...");
+  }
+
+  else {
+
+    Serial.println();
+    Serial.println("Second Wi-Fi failed.");
+    Serial.println("Trying first Wi-Fi again...");
 
     WiFi.disconnect();
+
     delay(100);
 
     currentWiFi = 1;
@@ -240,8 +311,18 @@ void handleWiFi() {
 }
 
 char decodeMorse(String symbol) {
-  for (int i = 0; i < morseTableSize; i++) {
-    if (symbol == morseTable[i].code) {
+
+  for (
+    int i = 0;
+    i < morseTableSize;
+    i++
+  ) {
+
+    if (
+      symbol ==
+      morseTable[i].code
+    ) {
+
       return morseTable[i].letter;
     }
   }
@@ -250,7 +331,9 @@ char decodeMorse(String symbol) {
 }
 
 void displayReady() {
+
   display.clearDisplay();
+
   display.setTextColor(SSD1306_WHITE);
 
   display.setTextSize(2);
@@ -258,11 +341,14 @@ void displayReady() {
   display.println("READY");
 
   display.setTextSize(1);
+
   display.setCursor(0, 25);
 
   if (mode == TEXT_MODE) {
     display.println("MODE: TEXT");
-  } else {
+  }
+
+  else {
     display.println("MODE: LETTER");
   }
 
@@ -276,15 +362,20 @@ void displayReady() {
 }
 
 void displayMorse() {
+
   display.clearDisplay();
+
   display.setTextColor(SSD1306_WHITE);
 
   display.setTextSize(1);
+
   display.setCursor(0, 0);
 
   if (mode == TEXT_MODE) {
     display.println("MODE: TEXT");
-  } else {
+  }
+
+  else {
     display.println("MODE: LETTER");
   }
 
@@ -292,18 +383,25 @@ void displayMorse() {
   display.println("Morse:");
 
   display.setTextSize(3);
+
   display.setCursor(0, 25);
   display.println(morseSymbol);
 
   display.setTextSize(1);
+
   display.setCursor(0, 55);
+
   display.print("Text: ");
 
   int len = decodedText.length();
 
   if (len > 14) {
-    display.println(decodedText.substring(len - 14));
-  } else {
+    display.println(
+      decodedText.substring(len - 14)
+    );
+  }
+
+  else {
     display.println(decodedText);
   }
 
@@ -311,10 +409,13 @@ void displayMorse() {
 }
 
 void displayLetter(char letter) {
+
   display.clearDisplay();
+
   display.setTextColor(SSD1306_WHITE);
 
   display.setTextSize(1);
+
   display.setCursor(0, 0);
   display.println("MODE: LETTER");
 
@@ -322,6 +423,7 @@ void displayLetter(char letter) {
   display.println("Decoded:");
 
   display.setTextSize(4);
+
   display.setCursor(50, 22);
   display.println(letter);
 
@@ -329,15 +431,20 @@ void displayLetter(char letter) {
 }
 
 void displayText() {
+
   display.clearDisplay();
+
   display.setTextColor(SSD1306_WHITE);
 
   display.setTextSize(1);
+
   display.setCursor(0, 0);
 
   if (mode == TEXT_MODE) {
     display.println("MODE: TEXT");
-  } else {
+  }
+
+  else {
     display.println("MODE: LETTER");
   }
 
@@ -345,13 +452,20 @@ void displayText() {
   display.println("Decoded:");
 
   display.setTextSize(2);
+
   display.setCursor(0, 27);
 
   int len = decodedText.length();
 
   if (len > 10) {
-    display.println(decodedText.substring(len - 10));
-  } else {
+
+    display.println(
+      decodedText.substring(len - 10)
+    );
+  }
+
+  else {
+
     display.println(decodedText);
   }
 
@@ -359,19 +473,25 @@ void displayText() {
 }
 
 void displayModeChanged() {
+
   display.clearDisplay();
+
   display.setTextColor(SSD1306_WHITE);
 
   display.setTextSize(1);
+
   display.setCursor(0, 0);
   display.println("MODE CHANGED");
 
   display.setTextSize(2);
+
   display.setCursor(0, 22);
 
   if (mode == LETTER_MODE) {
     display.println("LETTER");
-  } else {
+  }
+
+  else {
     display.println("TEXT");
   }
 
@@ -383,7 +503,9 @@ void displayModeChanged() {
 }
 
 void handleWiFiClients() {
-  WiFiClient client = server.available();
+
+  WiFiClient client =
+    server.available();
 
   if (!client) {
     return;
@@ -391,12 +513,14 @@ void handleWiFiClients() {
 
   Serial.println("Client connected");
 
-  unsigned long timeout = millis();
+  unsigned long timeout =
+    millis();
 
   while (
     !client.available() &&
     millis() - timeout < 1000
   ) {
+
     delay(1);
   }
 
